@@ -1,4 +1,4 @@
-bluesky viewer
+[bluesky viewer](https://bskyviewer.github.io/)
 
 a web app that shows public data from bluesky
 
