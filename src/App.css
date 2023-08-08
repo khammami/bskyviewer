@@ -24,7 +24,9 @@
   height: 0;
   opacity: 0;
   pointer-events: none;
-  transition: ease 0.2s height, ease 0.2s opacity;
+  transition:
+    ease 0.2s height,
+    ease 0.2s opacity;
 }
 
 .App__loading-card--visible {
@@ -63,7 +65,7 @@
 .App__post-timeline {
   background: white;
   margin: 1rem 0;
-  padding: 0 16px;
+  padding: 8px 16px;
   border-radius: 8px;
   outline: 1px solid #c0c0e3;
   transition: ease 0.2s opacity;
@@ -81,4 +83,13 @@
 .App__post-loading-card .Spinner {
   --size: 40px;
   --thickness: 5px;
+}
+
+.__react_component_tooltip.show {
+  opacity: 1 !important;
+}
+
+.App__tooltip {
+  max-width: 40vw;
+  max-height: 40vh;
 }

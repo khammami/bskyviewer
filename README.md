@@ -1,5 +1,5 @@
-# Show my likes! ❤️ for Bluesky
+bluesky viewer
 
-A web app that shows liked posts of a profile.
+a web app that shows public data from bluesky
 
 ![App screenshot, showing a form with a profile handle and a post timeline](./screenshot.png)

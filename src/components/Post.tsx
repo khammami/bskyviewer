@@ -1,6 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
 import {
-  AppBskyActorProfile,
   AppBskyEmbedImages,
   AppBskyEmbedRecord,
   AppBskyEmbedRecordWithMedia,
@@ -8,12 +6,15 @@ import {
   AtUri,
 } from '@atproto/api'
 import classNames from 'classnames'
-import RichText from './RichText'
-import FriendlyError from './FriendlyError'
-import { fetchPost, fetchProfile, getBlobURL } from '../utils/api'
-import { getRelativeDateString } from '../utils/datetime'
-import './Post.css'
+import { useEffect, useMemo, useState } from 'react'
+import { renderToString } from 'react-dom/server'
+import { Profile, fetchPost, fetchProfile, getBlobURL } from '../utils/api'
 import { WEB_APP } from '../utils/constants'
+import { getRelativeDateString } from '../utils/datetime'
+import FriendlyError from './FriendlyError'
+import './Post.css'
+import RichText from './RichText'
+import User from './User'
 
 function PostImages({
   service,
@@ -25,24 +26,24 @@ function PostImages({
   images: AppBskyEmbedImages.Image[]
 }) {
   if (images.length === 1) {
+    const url = getBlobURL(service, did, images[0].image)
     return (
       <img
         className="Post__image"
-        src={getBlobURL(service, did, images[0].image)}
+        src={url}
         alt={images[0].alt}
+        data-tooltip-id="image"
+        data-tooltip-content={url}
       />
     )
   }
 
   return (
     <div className="Post__images">
-      {images.map((image, idx) => (
-        <img
-          key={idx}
-          src={getBlobURL(service, did, image.image)}
-          alt={image.alt}
-        />
-      ))}
+      {images.map((image, idx) => {
+        const url = getBlobURL(service, did, image.image)
+        return <img key={idx} src={url} alt={image.alt} />
+      })}
     </div>
   )
 }
@@ -52,36 +53,34 @@ function Post({
   className,
   uri,
   post,
+  verb,
+  verbedAt,
   isEmbedded = false,
 }: {
   service: string
   className?: string
   uri: string
   post: AppBskyFeedPost.Record
+  verb?: string
+  verbedAt?: string
   isEmbedded?: boolean
 }) {
   const atUri = useMemo(() => new AtUri(uri), [uri])
 
-  const [profile, setProfile] = useState<{
-    uri: string
-    handle: string
-    profile: AppBskyActorProfile.Record
-  } | null>(null)
+  const [profile, setProfile] = useState<Profile>()
 
-  const [profileError, setProfileError] = useState<string | null>(null)
+  const [profileError, setProfileError] = useState<string>()
 
   const [embeddedPost, setEmbeddedPost] = useState<{
     uri: string
     record: AppBskyFeedPost.Record
-  } | null>(null)
-  const [embeddedPostError, setEmbeddedPostError] = useState<string | null>(
-    null
-  )
+  }>()
 
-  const [parentPost, setParentPost] = useState<AppBskyFeedPost.Record | null>(
-    null
-  )
-  const [parentPostError, setParentPostError] = useState<string | null>(null)
+  const [embeddedPostError, setEmbeddedPostError] = useState<string>()
+
+  const [parentPost, setParentPost] = useState<AppBskyFeedPost.Record>()
+
+  const [parentPostError, setParentPostError] = useState<string>()
 
   const profileImage = useMemo(() => {
     if (!profile) {
@@ -93,56 +92,45 @@ function Post({
     }
 
     return getBlobURL(service, atUri.hostname, profile.profile.avatar)
-  }, [profile])
+  }, [atUri.hostname, profile, service])
+
+  const profileHtml = useMemo(
+    () =>
+      profile && renderToString(<User service={service} profile={profile} />),
+    [profile, service]
+  )
 
   const [date, relativeDate] = useMemo(() => {
     const date = new Date(post.createdAt)
+    if (verb && verbedAt) {
+      return [
+        date,
+        `${getRelativeDateString(date)} (${verb} ${getRelativeDateString(
+          new Date(verbedAt)
+        )})`,
+      ]
+    }
     return [date, getRelativeDateString(date)]
-  }, [post.createdAt])
+  }, [post.createdAt, verb, verbedAt])
 
   useEffect(() => {
     if (isEmbedded || !post.reply) {
-      return () => {}
+      return
     }
 
-    const abortController = new AbortController()
+    return fetchPost(
+      service,
+      post.reply.parent.uri,
+      post.reply.parent.cid,
+      setParentPost,
+      setParentPostError
+    )
+  }, [isEmbedded, post.reply, service])
 
-    fetchPost(service, post.reply.parent.uri, post.reply.parent.cid)
-      .then((result) => {
-        if (abortController.signal.aborted) {
-          return
-        }
-
-        setParentPost(result)
-      })
-      .catch((error) => {
-        setParentPostError(error.message)
-      })
-
-    return () => {
-      abortController.abort()
-    }
-  }, [isEmbedded, post.reply?.parent.uri, post.reply?.parent.cid])
-
-  useEffect(() => {
-    const abortController = new AbortController()
-
-    fetchProfile(service, atUri.hostname)
-      .then((result) => {
-        if (abortController.signal.aborted) {
-          return
-        }
-
-        setProfile(result)
-      })
-      .catch((error) => {
-        setProfileError(error.message)
-      })
-
-    return () => {
-      abortController.abort()
-    }
-  }, [atUri.hostname])
+  useEffect(
+    () => fetchProfile(service, atUri.hostname, setProfile, setProfileError),
+    [atUri.hostname, service]
+  )
 
   useEffect(() => {
     if (isEmbedded) {
@@ -159,41 +147,34 @@ function Post({
       ? post.embed.record
       : post.embed.record.record
 
-    const abortController = new AbortController()
-
-    fetchPost(service, record.uri, record.cid)
-      .then((data) => {
-        if (abortController.signal.aborted) {
-          return
-        }
-
-        setEmbeddedPost({ uri: record.uri, record: data })
-      })
-      .catch((error) => {
-        setEmbeddedPostError(error.message)
-      })
-
-    return () => {
-      abortController.abort()
-    }
-  }, [
-    isEmbedded,
-    post.embed && AppBskyEmbedRecord.isMain(post.embed),
-    post.embed && AppBskyEmbedRecordWithMedia.isMain(post.embed),
-  ])
+    return fetchPost(
+      service,
+      record.uri,
+      record.cid,
+      (data) => setEmbeddedPost({ uri: record.uri, record: data }),
+      setEmbeddedPostError
+    )
+  }, [isEmbedded, post.embed, service])
 
   const postNode = (
     <article
       className={classNames('Post', isEmbedded && 'Post--embed', className)}
     >
       {profileImage ? (
-        <img className="Post__avatar" src={profileImage} />
+        <img
+          className="Post__avatar"
+          src={profileImage}
+          data-tooltip-id="image"
+          data-tooltip-content={profileImage}
+        />
       ) : (
         <div className="Post__avatar-placeholder" />
       )}
       <a
         className="Post__author-name"
         href={`${WEB_APP}/profile/${profile ? profile.handle : atUri.hostname}`}
+        data-tooltip-id="profile"
+        data-tooltip-html={profileHtml}
       >
         {profile?.profile.displayName ?? profile?.handle ?? atUri.hostname}
       </a>{' '}

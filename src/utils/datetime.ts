@@ -1,4 +1,7 @@
-const relativeTimeFormat = new Intl.RelativeTimeFormat('en')
+const relativeTimeFormat = new Intl.RelativeTimeFormat('en', {
+  style: 'short',
+  numeric: 'auto',
+})
 
 export function getRelativeDateString(date: Date) {
   const now = new Date()
@@ -13,17 +16,17 @@ export function getRelativeDateString(date: Date) {
   } else if (Math.abs(diff) < 30 * 24 * 60 * 60) {
     relativeDate = relativeTimeFormat.format(
       Math.floor(diff / 60 / 60 / 24),
-      'day'
+      'day',
     )
   } else if (Math.abs(diff) < 365 * 24 * 60 * 60) {
     relativeDate = relativeTimeFormat.format(
       date.getMonth() - now.getMonth(),
-      'month'
+      'month',
     )
   } else {
     relativeDate = relativeTimeFormat.format(
       date.getFullYear() - now.getFullYear(),
-      'month'
+      'month',
     )
   }
   return relativeDate

@@ -1,0 +1,76 @@
+.User {
+  color: black;
+  min-width: 25rem;
+  position: relative;
+  display: flex;
+  padding: 12px;
+  margin: 12px 0;
+  border: 2px solid darkgray;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+}
+
+.User__avatar {
+  outline: 1px solid #0082;
+  outline-offset: -1px;
+}
+
+.User__avatar,
+.User__avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  margin-right: 12px;
+  border-radius: 100%;
+  box-shadow: 0 0 0 2px white;
+}
+
+.User__avatar-placeholder {
+  background: #dddde8;
+}
+
+.User__name {
+  margin-right: 4px;
+  color: inherit;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.User__name:hover {
+  text-decoration: underline;
+}
+
+.User__handle {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.User__bio {
+  font-size: 15px;
+  margin: 1px 0;
+  padding: 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.User__relative-date {
+  font-size: 15px;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+}
+
+.User__content {
+  flex: 1;
+}

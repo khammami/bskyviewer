@@ -1,63 +1,127 @@
-import { FormEvent, useEffect, useState } from 'react'
 import classNames from 'classnames'
-import Post from './components/Post'
-import FriendlyError from './components/FriendlyError'
-import Spinner from './components/Spinner'
-import { Like, fetchLikedPosts } from './utils/api'
-import { DEFAULT_SERVICE, WEB_APP } from './utils/constants'
+import { FormEvent, useEffect, useMemo, useReducer, useState } from 'react'
+import { Tooltip } from 'react-tooltip'
 import './App.css'
+import FriendlyError from './components/FriendlyError'
+import { Record } from './components/Record'
+import Spinner from './components/Spinner'
+import User from './components/User'
+import { Profile, fetchPosts, fetchProfile } from './utils/api'
+import { DEFAULT_SERVICE, WEB_APP } from './utils/constants'
+
+type Posts = Awaited<ReturnType<typeof fetchPosts>>['records']
+
+const collections = {
+  posts: 'app.bsky.feed.post',
+  shares: 'app.bsky.feed.repost',
+  likes: 'app.bsky.feed.like',
+  follows: 'app.bsky.graph.follow',
+  blocks: 'app.bsky.graph.block',
+}
+
+const cleanHandle = (handle: string, service: string) => {
+  if (!handle.includes('.') && !handle.includes(':')) {
+    handle = handle + '.' + new URL(service).host
+  }
+  return handle.toLowerCase().trim().replace(/^@/, '')
+}
 
 function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [profileHandle, setProfileHandle] = useState('')
+  const [profile, setProfile] = useState<Profile>()
   const [service, setService] = useState(DEFAULT_SERVICE)
-  const [error, setError] = useState(null)
-  const [likes, setLikes] = useState<Like[]>([])
-  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const [collection, setCollection] = useState({
+    name: 'posts',
+    id: 'app.bsky.feed.post',
+  })
+  const [error, setError] = useState<string>()
+  const [cursor, setCursor] = useState<string>()
+  const [records, addEntries] = useReducer(
+    (state: Posts, { cursor, records }: { cursor?: string; records: Posts }) =>
+      cursor ? [...state, ...records] : records,
+    []
+  )
+  const [count, increment] = useReducer((state) => state + 1, 0)
 
-  const load = (cursor?: string) => {
-    setError(null)
+  const load = useMemo(
+    () => (abort: AbortController, cursor?: string) => {
+      if (!profileHandle) {
+        return
+      }
 
-    return fetchLikedPosts({
-      service,
-      handle: profileHandle.toLowerCase().replace(/^@/, ''),
-      cursor,
-    })
-      .then(({ likes: newLikes, cursor: newCursor }) => {
-        if (cursor) {
-          setLikes([...likes, ...newLikes])
-        } else {
-          setLikes(newLikes)
-        }
-        setCursor(newCursor)
+      setError(undefined)
+      if (!cursor) {
+        setIsLoading(true)
+      }
+
+      return fetchPosts({
+        service,
+        handle: cleanHandle(profileHandle, service),
+        collection: collection.id,
+        cursor,
       })
-      .catch((error) => {
-        setLikes([])
-        setCursor(undefined)
-        setError(error.message)
-      })
-  }
+        .then(({ records, cursor: newCursor }) => {
+          if (!abort.signal.aborted) {
+            addEntries({ cursor, records })
+            setCursor(newCursor)
+            setIsLoading(false)
+          }
+        })
+        .catch((error) => {
+          if (!abort.signal.aborted) {
+            addEntries({ records: [] })
+            setCursor(undefined)
+            setError(error.message)
+            setIsLoading(false)
+          }
+        })
+    },
+    [collection.id, profileHandle, service]
+  )
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
-    setIsLoading(true)
-    load().then(() => {
-      setIsLoading(false)
-    })
+    increment()
   }
+
+  useEffect(() => {
+    if (!count) {
+      return
+    }
+
+    const abort = new AbortController()
+
+    load(abort)
+
+    return () => abort.abort()
+  }, [load, count])
+
+  useEffect(() => {
+    if (!count || !profileHandle) {
+      return
+    }
+
+    return fetchProfile(
+      service,
+      cleanHandle(profileHandle, service),
+      setProfile,
+      setError
+    )
+  }, [count, profileHandle, service])
 
   useEffect(() => {
     if (!cursor) {
       return
     }
+    const abort = new AbortController()
 
     let fetchingMore = false
 
     function onScroll() {
       if (!fetchingMore && document.body.scrollHeight - window.scrollY < 2000) {
         fetchingMore = true
-        load(cursor)
+        load(abort, cursor)
         // The cursor will change and the effect will run again
       }
     }
@@ -67,27 +131,26 @@ function App() {
     window.addEventListener('scroll', onScroll, { passive: true })
 
     return () => {
+      abort.abort()
       window.removeEventListener('scroll', onScroll)
     }
-  }, [cursor])
+  }, [cursor, load])
 
   return (
     <>
       <header className="App__header">
-        <h1 className="App__heading">Show my likes! ❤️</h1>
-
-        <p className="App__subtitle">
-          Enter your handle and get a list of the profile's liked posts
-        </p>
-
         <p className="App__credits">
-          made by{' '}
-          <a href={`${WEB_APP}/profile/did:plc:uowmeg4dqtanpmjuknadqjqc`}>
-            @handlerug.bsky.social
+          <a href="https://github.com/bskyviewer/bskyviewer.github.io">
+            source code
           </a>
           {' • '}
-          <a href="https://github.com/handlerug/bluesky-liked-posts">
-            source code
+          based on{' '}
+          <a href="https://handlerug.github.io/bluesky-liked-posts/">
+            bluesky-liked-posts
+          </a>{' '}
+          by{' '}
+          <a href={`${WEB_APP}/profile/did:plc:uowmeg4dqtanpmjuknadqjqc`}>
+            @handlerug.bsky.social
           </a>
         </p>
       </header>
@@ -95,7 +158,7 @@ function App() {
       <main>
         <form onSubmit={onSubmit}>
           <div className="form-field">
-            <label htmlFor="profile-handle">Your profile handle</label>
+            <label htmlFor="profile-handle">username</label>
             <input
               id="profile-handle"
               type="text"
@@ -122,8 +185,23 @@ function App() {
             </details>
           </div>
 
-          <div className="form-field">
-            <button type="submit">Load likes!</button>
+          {profile && (
+            <div className="form-field">
+              <User service={service} profile={profile} />
+            </div>
+          )}
+
+          <div className="form-field buttons">
+            {Object.entries(collections).map(([name, id]) => (
+              <button
+                key={id}
+                type="submit"
+                className={name === collection.name ? 'active' : undefined}
+                onClick={() => setCollection({ name, id })}
+              >
+                {name}
+              </button>
+            ))}
           </div>
         </form>
 
@@ -136,39 +214,26 @@ function App() {
         >
           <div className="App__loading-card__inner">
             <Spinner />
-            Loading your likes…
+            Loading your {collection.name}…
           </div>
         </div>
 
         {error ? (
           <FriendlyError
             className="App__like-error"
-            heading="Error fetching likes"
+            heading={`Error fetching ${collection.name}`}
             message={error}
           />
-        ) : likes.length > 0 ? (
+        ) : records.length > 0 ? (
           <div
             className={classNames(
               'App__post-timeline',
               isLoading && 'App__post-timeline--loading'
             )}
           >
-            {likes.map((like) =>
-              'value' in like ? (
-                <Post
-                  key={like.uri}
-                  uri={like.uri}
-                  post={like.value}
-                  service={service}
-                />
-              ) : (
-                <FriendlyError
-                  key={like.uri}
-                  heading="Error fetching the post"
-                  message={like.error}
-                />
-              )
-            )}
+            {records.map((record) => (
+              <Record key={record.uri} record={record} service={service} />
+            ))}
             {cursor ? (
               <div
                 className="App__post-loading-card"
@@ -180,6 +245,15 @@ function App() {
           </div>
         ) : null}
       </main>
+      <Tooltip
+        id="image"
+        opacity={1}
+        style={{ zIndex: 100 }}
+        render={({ content }) => (
+          <img className="App__tooltip" src={content || undefined} />
+        )}
+      />
+      <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
     </>
   )
 }

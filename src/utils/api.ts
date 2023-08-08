@@ -1,23 +1,11 @@
 import {
-  AtpAgent,
   AppBskyActorProfile,
-  AppBskyFeedLike,
   AppBskyFeedPost,
   AtUri,
+  AtpAgent,
   BlobRef,
 } from '@atproto/api'
 import memoize from 'fast-memoize'
-
-export type Like = {
-  uri: string
-} & (
-  | {
-      value: AppBskyFeedPost.Record
-    }
-  | {
-      error: string
-    }
-)
 
 export function getBlobURL(service: string, did: string, ref: BlobRef) {
   return `${service}/xrpc/com.atproto.sync.getBlob?${new URLSearchParams({
@@ -26,103 +14,127 @@ export function getBlobURL(service: string, did: string, ref: BlobRef) {
   }).toString()}`
 }
 
-export async function fetchLikedPosts({
+export async function fetchPosts({
   service,
   handle,
   cursor,
+  collection,
 }: {
   service: string
   handle: string
   cursor?: string
-}): Promise<{
-  likes: Like[]
-  cursor?: string
-}> {
+  collection: string
+}) {
   const agent = new AtpAgent({ service })
   const { data } = await agent.api.com.atproto.repo.listRecords({
     repo: handle,
-    collection: 'app.bsky.feed.like',
+    collection,
     limit: 5,
     cursor,
   })
+  return data
+}
 
-  const likes = await Promise.all(
-    data.records.map((record) => {
-      if (!AppBskyFeedLike.isRecord(record.value)) {
-        return { uri: record.uri, error: `Invalid like record ${record.uri}` }
+const getRecord = memoize((service, args) => {
+  const agent = new AtpAgent({ service })
+  return agent.api.com.atproto.repo.getRecord(args)
+})
+
+const describeRepo = memoize((service, args) => {
+  const agent = new AtpAgent({ service })
+  return agent.api.com.atproto.repo.describeRepo(args)
+})
+
+export type Profile = {
+  uri: string
+  handle: string
+  profile: AppBskyActorProfile.Record
+}
+
+export const fetchProfile = function fetchProfile(
+  service: string,
+  handle: string,
+  onSuccess: (profile: Profile) => void,
+  onError: (error: string) => void
+) {
+  const abortController = new AbortController()
+
+  describeRepo(service, {
+    repo: handle,
+  })
+    .then(({ data: { handle } }) => {
+      if (abortController.signal.aborted) {
+        return
       }
-      const post = record.value.subject
-      const uri = new AtUri(post.uri)
-      return agent.api.com.atproto.repo
-        .getRecord({
-          repo: uri.hostname,
-          collection: uri.collection,
-          rkey: uri.rkey,
-          cid: post.cid,
-        })
-        .then(({ data: { uri, value } }) => {
-          if (AppBskyFeedPost.isRecord(value)) {
-            return { uri, value }
-          }
-          return { uri: uri, error: `Invalid post record ${uri}` }
-        })
-        .catch((error) => ({ uri: post.uri, error: error.message }))
-    })
-  )
+      getRecord(service, {
+        repo: handle,
+        collection: 'app.bsky.actor.profile',
+        rkey: 'self',
+      }).then(({ data: { uri, value } }) => {
+        if (abortController.signal.aborted) {
+          return
+        }
 
-  return {
-    likes,
-    cursor: data.cursor,
+        if (AppBskyActorProfile.isRecord(value)) {
+          const host = '.' + new URL(service).host
+
+          if (handle.endsWith(host)) {
+            handle = handle.slice(0, -host.length)
+          }
+
+          onSuccess({ uri, handle, profile: value })
+          return { uri, value }
+        } else {
+          abortController.signal.aborted ||
+            onError(`Invalid profile record ${uri}`)
+        }
+      })
+    })
+    .catch(
+      (error) =>
+        abortController.signal.aborted ||
+        onError(error?.message ?? String(error))
+    )
+
+  return () => {
+    abortController.abort()
   }
 }
 
-export const fetchProfile = memoize(async function fetchProfile(
+export function fetchPost(
   service: string,
-  handle: string
+  uri: string,
+  cid: string,
+  onSuccess: (post: AppBskyFeedPost.Record) => void,
+  onError: (error: string) => void
 ) {
-  const agent = new AtpAgent({ service })
-  const { uri, value: profile } = await agent.api.com.atproto.repo
-    .getRecord({
-      repo: handle,
-      collection: 'app.bsky.actor.profile',
-      rkey: 'self',
-    })
-    .then(({ data: { uri, value } }) => {
-      if (AppBskyActorProfile.isRecord(value)) {
-        return { uri, value }
-      }
-      throw new Error(`Invalid profile record ${uri}`)
-    })
-    .catch(() => ({
-      uri: AtUri.make(handle).toString(),
-      value: {},
-    }))
-
-  handle = await agent.api.com.atproto.repo
-    .describeRepo({
-      repo: new AtUri(uri).hostname,
-    })
-    .then(({ data }) => data.handle)
-    .catch(() => handle)
-
-  return { uri, handle, profile }
-})
-
-export async function fetchPost(service: string, uri: string, cid?: string) {
-  const agent = new AtpAgent({ service })
   const atUri = new AtUri(uri)
 
-  const {
-    data: { value },
-  } = await agent.api.com.atproto.repo.getRecord({
+  const abortController = new AbortController()
+
+  getRecord(service, {
     repo: atUri.hostname,
     collection: atUri.collection,
     rkey: atUri.rkey,
     cid: cid,
   })
+    .then(({ data: { value } }) => {
+      if (!abortController.signal.aborted) {
+        if (AppBskyFeedPost.isRecord(value)) {
+          onSuccess(value)
+        } else {
+          console.log(value)
+          onError(`Invalid post record ${uri}`)
+        }
+      }
+    })
+    .catch(
+      (error) =>
+        abortController.signal.aborted ||
+        onError(error?.message || String(error))
+    )
 
-  if (AppBskyFeedPost.isRecord(value)) {
-    return value
+  return () => {
+    abortController.abort()
   }
-  throw new Error(`Invalid post record ${uri}`)
 }
