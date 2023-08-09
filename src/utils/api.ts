@@ -7,12 +7,12 @@ import {
 } from '@atproto/api'
 import memoize from 'fast-memoize'
 
-export function getBlobURL(service: string, did: string, ref: BlobRef) {
+export const getBlobURL = memoize((service: string, did: string, ref: BlobRef) => {
   return `${service}/xrpc/com.atproto.sync.getBlob?${new URLSearchParams({
     did,
     cid: ref.ref,
   }).toString()}`
-}
+})
 
 export async function fetchPosts({
   service,

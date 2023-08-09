@@ -90,6 +90,21 @@
   margin-top: 8px;
 }
 
+.Post__external-embed {
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.Post__external-embed-title {
+  color: initial;
+  font-weight: bold;
+}
+
+.Post__external-embed-description {
+  margin-right: 4px;
+  color: initial;
+}
+
 .Post__image {
   grid-area: image;
   margin-top: 8px;

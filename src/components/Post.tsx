@@ -1,4 +1,5 @@
 import {
+  AppBskyEmbedExternal,
   AppBskyEmbedImages,
   AppBskyEmbedRecord,
   AppBskyEmbedRecordWithMedia,
@@ -8,6 +9,7 @@ import {
 import classNames from 'classnames'
 import { useEffect, useMemo, useState } from 'react'
 import { renderToString } from 'react-dom/server'
+import { ReactEmbed } from 'react-embed'
 import { Profile, fetchPost, fetchProfile, getBlobURL } from '../utils/api'
 import { WEB_APP } from '../utils/constants'
 import { getRelativeDateString } from '../utils/datetime'
@@ -15,6 +17,38 @@ import FriendlyError from './FriendlyError'
 import './Post.css'
 import RichText from './RichText'
 import User from './User'
+
+function ExternalEmbed({
+  service,
+  did,
+  embed,
+}: {
+  service: string
+  did: string
+  embed: AppBskyEmbedExternal.External
+}) {
+  return (
+    <ReactEmbed
+      url={embed.uri}
+      renderVoid={() =>
+        embed.thumb ? (
+          <a href={embed.uri} target="_blank" className="Post__external-embed">
+            <img
+              className="Post__image"
+              src={getBlobURL(service, did, embed.thumb)}
+              alt={embed.title}
+            />
+            <span className="Post__external-embed-title">{embed.title}</span>
+            <br />
+            <span className="Post__external-embed-description">
+              {embed.description}
+            </span>
+          </a>
+        ) : null
+      }
+    />
+  )
+}
 
 function PostImages({
   service,
@@ -42,7 +76,15 @@ function PostImages({
     <div className="Post__images">
       {images.map((image, idx) => {
         const url = getBlobURL(service, did, image.image)
-        return <img key={idx} src={url} alt={image.alt} />
+        return (
+          <img
+            key={idx}
+            src={url}
+            alt={image.alt}
+            data-tooltip-id="image"
+            data-tooltip-content={url}
+          />
+        )
       })}
     </div>
   )
@@ -97,7 +139,7 @@ function Post({
   const profileHtml = useMemo(
     () =>
       profile && renderToString(<User service={service} profile={profile} />),
-    [profile, service]
+    [profile, service],
   )
 
   const [date, relativeDate] = useMemo(() => {
@@ -106,7 +148,7 @@ function Post({
       return [
         date,
         `${getRelativeDateString(date)} (${verb} ${getRelativeDateString(
-          new Date(verbedAt)
+          new Date(verbedAt),
         )})`,
       ]
     }
@@ -123,13 +165,13 @@ function Post({
       post.reply.parent.uri,
       post.reply.parent.cid,
       setParentPost,
-      setParentPostError
+      setParentPostError,
     )
   }, [isEmbedded, post.reply, service])
 
   useEffect(
     () => fetchProfile(service, atUri.hostname, setProfile, setProfileError),
-    [atUri.hostname, service]
+    [atUri.hostname, service],
   )
 
   useEffect(() => {
@@ -152,7 +194,7 @@ function Post({
       record.uri,
       record.cid,
       (data) => setEmbeddedPost({ uri: record.uri, record: data }),
-      setEmbeddedPostError
+      setEmbeddedPostError,
     )
   }, [isEmbedded, post.embed, service])
 
@@ -210,6 +252,25 @@ function Post({
                 did={atUri.hostname}
                 images={post.embed.media.images}
                 service={service}
+              />
+            ) : null}
+          </>
+        ) : null
+      ) : null}
+      {post.embed ? (
+        AppBskyEmbedExternal.isMain(post.embed) ? (
+          <ExternalEmbed
+            service={service}
+            did={atUri.hostname}
+            embed={post.embed.external}
+          />
+        ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
+          <>
+            {AppBskyEmbedExternal.isMain(post.embed.media) ? (
+              <ExternalEmbed
+                service={service}
+                did={atUri.hostname}
+                embed={post.embed.media.external}
               />
             ) : null}
           </>
