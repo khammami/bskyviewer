@@ -7,7 +7,8 @@ import {
   AppBskyActorProfile as profile,
   AppBskyFeedRepost as repost,
 } from '@atproto/api'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
+import { Filter } from '../App'
 import { Profile, fetchPost, fetchProfile } from '../utils/api'
 import FriendlyError from './FriendlyError'
 import Post from './Post'
@@ -23,6 +24,7 @@ export function Record({
 }) {
   const [value, setValue] = useState<post.Record | Profile>()
   const [error, setError] = useState('')
+  const [filter] = useContext(Filter)
   useEffect(() => {
     if (
       post.isRecord(record.value) ||
@@ -45,7 +47,7 @@ export function Record({
   }, [service, record])
 
   if (post.isRecord(record.value)) {
-    return <Post service={service} uri={record.uri} post={record.value} />
+    return filter.contains(record.uri) ? null : <Post service={service} uri={record.uri} post={record.value} />
   }
 
   if (

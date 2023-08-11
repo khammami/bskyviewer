@@ -227,4 +227,9 @@
 
 .Post--ellipsis span {
   padding-left: 56px;
+  cursor: pointer;
+}
+
+.Post--ellipsis span:hover {
+  text-decoration: underline;
 }

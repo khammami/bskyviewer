@@ -1,5 +1,6 @@
 import classNames from 'classnames'
-import { FormEvent, useEffect, useMemo, useReducer, useState } from 'react'
+import { Set } from 'immutable'
+import { Context, FormEvent, createContext, useEffect, useMemo, useReducer, useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import './App.css'
 import FriendlyError from './components/FriendlyError'
@@ -26,11 +27,14 @@ const cleanHandle = (handle: string, service: string) => {
   return handle.toLowerCase().trim().replace(/^@/, '')
 }
 
+export const Filter: Context<[Set<string>, (value: Set<string>) => void]> = createContext([Set(), (_) => { }])
+
 function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [profileHandle, setProfileHandle] = useState('')
   const [profile, setProfile] = useState<Profile>()
   const [service, setService] = useState(DEFAULT_SERVICE)
+  const filterState = useState(Set<string>())
   const [collection, setCollection] = useState({
     name: 'posts',
     id: 'app.bsky.feed.post',
@@ -53,6 +57,7 @@ function App() {
       setError(undefined)
       if (!cursor) {
         setIsLoading(true)
+        filterState[1](Set())
       }
 
       return fetchPosts({
@@ -137,7 +142,7 @@ function App() {
   }, [cursor, load])
 
   return (
-    <>
+    <Filter.Provider value={filterState}>
       <header className="App__header">
         <p className="App__credits">
           <a href="https://github.com/bskyviewer/bskyviewer.github.io">
@@ -254,7 +259,7 @@ function App() {
         )}
       />
       <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
-    </>
+    </Filter.Provider>
   )
 }
 

@@ -7,9 +7,10 @@ import {
   AtUri,
 } from '@atproto/api'
 import classNames from 'classnames'
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { renderToString } from 'react-dom/server'
 import { ReactEmbed } from 'react-embed'
+import { Filter } from '../App'
 import { Profile, fetchPost, fetchProfile, getBlobURL } from '../utils/api'
 import { WEB_APP } from '../utils/constants'
 import { getRelativeDateString } from '../utils/datetime'
@@ -18,6 +19,8 @@ import './Post.css'
 import RichText from './RichText'
 import Spinner from './Spinner'
 import User from './User'
+
+const ReplyContext = createContext<[boolean, (value: boolean) => void]>([true, () => { }]);
 
 function ExternalEmbed({
   service,
@@ -111,21 +114,17 @@ function Post({
   depth?: number
 }) {
   const atUri = useMemo(() => new AtUri(uri), [uri])
-
   const [profile, setProfile] = useState<Profile>()
-
   const [profileError, setProfileError] = useState<string>()
-
   const [embeddedPost, setEmbeddedPost] = useState<{
     uri: string
     record: AppBskyFeedPost.Record
   }>()
-
   const [embeddedPostError, setEmbeddedPostError] = useState<string>()
-
   const [parentPost, setParentPost] = useState<AppBskyFeedPost.Record>()
-
   const [parentPostError, setParentPostError] = useState<string>()
+  const [hideReplies, setHideReplies] = useContext(ReplyContext);
+  const [filter, setFilter] = useContext(Filter);
 
   const profileImage = useMemo(() => {
     if (!profile) {
@@ -172,6 +171,10 @@ function Post({
     )
   }, [isEmbedded, post.reply, service])
 
+  useEffect(() => {
+    post.reply && parentPost && !filter.contains(post.reply.parent.uri) && setFilter(filter.add(post.reply.parent.uri))
+  }, [post.reply, parentPost, filter, setFilter])
+
   useEffect(
     () => fetchProfile(service, atUri.hostname, setProfile, setProfileError),
     [atUri.hostname, service],
@@ -202,7 +205,7 @@ function Post({
   }, [isEmbedded, post.embed, service])
 
   const postNode =
-    depth > 1 && parentPost ? null : (
+    hideReplies && depth > 1 && parentPost ? null : (
       <article
         className={classNames('Post', isEmbedded && 'Post--embed', className)}
       >
@@ -218,9 +221,8 @@ function Post({
         )}
         <a
           className="Post__author-name"
-          href={`${WEB_APP}/profile/${
-            profile ? profile.handle : atUri.hostname
-          }`}
+          href={`${WEB_APP}/profile/${profile ? profile.handle : atUri.hostname
+            }`}
           data-tooltip-id="profile"
           data-tooltip-html={profileHtml}
         >
@@ -347,11 +349,11 @@ function Post({
     return (
       <>
         {postNode}
-        <div className="Post--ellipsis">
-          <span>
+        {hideReplies && <div className="Post--ellipsis">
+          <span onClick={() => setHideReplies(false)}>
             {depth - 2} {depth > 3 ? 'replies' : 'reply'} hidden
           </span>
-        </div>
+        </div>}
       </>
     )
   } else {
@@ -359,4 +361,11 @@ function Post({
   }
 }
 
-export default Post
+function WithContext(props: Parameters<typeof Post>[0]) {
+  const replyState = useState(true);
+  return <ReplyContext.Provider value={replyState}>
+    <Post {...props} />
+  </ReplyContext.Provider>
+}
+
+export default WithContext
