@@ -1,11 +1,11 @@
 import {
-    AppBskyGraphBlock as block,
-    AppBskyGraphFollow as follow,
-    AppBskyFeedLike as like,
-    ComAtprotoRepoListRecords as listRecords,
-    AppBskyFeedPost as post,
-    AppBskyActorProfile as profile,
-    AppBskyFeedRepost as repost,
+  AppBskyGraphBlock as block,
+  AppBskyGraphFollow as follow,
+  AppBskyFeedLike as like,
+  ComAtprotoRepoListRecords as listRecords,
+  AppBskyFeedPost as post,
+  AppBskyActorProfile as profile,
+  AppBskyFeedRepost as repost,
 } from '@atproto/api'
 import { useEffect, useState } from 'react'
 import { Profile, fetchPost, fetchProfile } from '../utils/api'
@@ -37,7 +37,7 @@ export function Record({
         record.value.subject.uri,
         record.value.subject.cid,
         setValue,
-        setError
+        setError,
       )
     } else if (follow.isRecord(record.value) || block.isRecord(record.value)) {
       return fetchProfile(service, record.value.subject, setValue, setError)

@@ -16,6 +16,7 @@ import { getRelativeDateString } from '../utils/datetime'
 import FriendlyError from './FriendlyError'
 import './Post.css'
 import RichText from './RichText'
+import Spinner from './Spinner'
 import User from './User'
 
 function ExternalEmbed({
@@ -98,6 +99,7 @@ function Post({
   verb,
   verbedAt,
   isEmbedded = false,
+  depth = 0,
 }: {
   service: string
   className?: string
@@ -106,6 +108,7 @@ function Post({
   verb?: string
   verbedAt?: string
   isEmbedded?: boolean
+  depth?: number
 }) {
   const atUri = useMemo(() => new AtUri(uri), [uri])
 
@@ -198,135 +201,122 @@ function Post({
     )
   }, [isEmbedded, post.embed, service])
 
-  const postNode = (
-    <article
-      className={classNames('Post', isEmbedded && 'Post--embed', className)}
-    >
-      {profileImage ? (
-        <img
-          className="Post__avatar"
-          src={profileImage}
-          data-tooltip-id="image"
-          data-tooltip-content={profileImage}
-        />
-      ) : (
-        <div className="Post__avatar-placeholder" />
-      )}
-      <a
-        className="Post__author-name"
-        href={`${WEB_APP}/profile/${profile ? profile.handle : atUri.hostname}`}
-        data-tooltip-id="profile"
-        data-tooltip-html={profileHtml}
+  const postNode =
+    depth > 1 && parentPost ? null : (
+      <article
+        className={classNames('Post', isEmbedded && 'Post--embed', className)}
       >
-        {profile?.profile.displayName ?? profile?.handle ?? atUri.hostname}
-      </a>{' '}
-      {profile ? (
-        <span className="Post__author-handle">@{profile.handle}</span>
-      ) : null}
-      <a
-        className="Post__relative-date"
-        href={`${WEB_APP}/profile/${atUri.hostname}/post/${atUri.rkey}`}
-      >
-        <time
-          dateTime={date.toISOString()}
-          title={date.toLocaleString()}
-          aria-label={`${relativeDate} — click to open the post in the Bluesky web app`}
-        >
-          {relativeDate}
-        </time>
-      </a>
-      <div className="Post__content">
-        <RichText text={post.text} facets={post.facets} />
-      </div>
-      {post.embed ? (
-        AppBskyEmbedImages.isMain(post.embed) ? (
-          <PostImages
-            service={service}
-            did={atUri.hostname}
-            images={post.embed.images}
+        {profileImage ? (
+          <img
+            className="Post__avatar"
+            src={profileImage}
+            data-tooltip-id="image"
+            data-tooltip-content={profileImage}
           />
-        ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
-          <>
-            {AppBskyEmbedImages.isMain(post.embed.media) ? (
-              <PostImages
-                did={atUri.hostname}
-                images={post.embed.media.images}
-                service={service}
-              />
-            ) : null}
-          </>
-        ) : null
-      ) : null}
-      {post.embed ? (
-        AppBskyEmbedExternal.isMain(post.embed) ? (
-          <ExternalEmbed
-            service={service}
-            did={atUri.hostname}
-            embed={post.embed.external}
-          />
-        ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
-          <>
-            {AppBskyEmbedExternal.isMain(post.embed.media) ? (
-              <ExternalEmbed
-                service={service}
-                did={atUri.hostname}
-                embed={post.embed.media.external}
-              />
-            ) : null}
-          </>
-        ) : null
-      ) : null}
-      {embeddedPost ? (
-        <Post
-          service={service}
-          className="Post__post-embed"
-          uri={embeddedPost.uri}
-          post={embeddedPost.record}
-          isEmbedded
-        />
-      ) : null}
-      {profileError ? (
-        <FriendlyError
-          className="Post__profile-error"
-          heading="Error fetching author's profile"
-          message={profileError}
-        />
-      ) : null}
-      {embeddedPostError ? (
-        <FriendlyError
-          className="Post__post-embed-error"
-          heading="Error fetching the quoted post"
-          message={embeddedPostError}
-        />
-      ) : null}
-      {isEmbedded && (
+        ) : (
+          <div className="Post__avatar-placeholder" />
+        )}
         <a
-          className="Post__link"
+          className="Post__author-name"
+          href={`${WEB_APP}/profile/${
+            profile ? profile.handle : atUri.hostname
+          }`}
+          data-tooltip-id="profile"
+          data-tooltip-html={profileHtml}
+        >
+          {profile?.profile.displayName ?? profile?.handle ?? atUri.hostname}
+        </a>{' '}
+        {profile ? (
+          <span className="Post__author-handle">@{profile.handle}</span>
+        ) : null}
+        <a
+          className="Post__relative-date"
           href={`${WEB_APP}/profile/${atUri.hostname}/post/${atUri.rkey}`}
         >
-          Open post in the Bluesky web app
+          <time
+            dateTime={date.toISOString()}
+            title={date.toLocaleString()}
+            aria-label={`${relativeDate} — click to open the post in the Bluesky web app`}
+          >
+            {relativeDate}
+          </time>
         </a>
-      )}
-    </article>
-  )
-
-  if (post.reply && parentPost) {
-    return (
-      <div className="PostThread">
-        <Post
-          service={service}
-          uri={post.reply.parent.uri}
-          post={{
-            ...parentPost,
-            reply: undefined,
-          }}
-        />
-        {postNode}
-      </div>
+        <div className="Post__content">
+          <RichText text={post.text} facets={post.facets} />
+        </div>
+        {post.embed ? (
+          AppBskyEmbedImages.isMain(post.embed) ? (
+            <PostImages
+              service={service}
+              did={atUri.hostname}
+              images={post.embed.images}
+            />
+          ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
+            <>
+              {AppBskyEmbedImages.isMain(post.embed.media) ? (
+                <PostImages
+                  did={atUri.hostname}
+                  images={post.embed.media.images}
+                  service={service}
+                />
+              ) : null}
+            </>
+          ) : null
+        ) : null}
+        {post.embed ? (
+          AppBskyEmbedExternal.isMain(post.embed) ? (
+            <ExternalEmbed
+              service={service}
+              did={atUri.hostname}
+              embed={post.embed.external}
+            />
+          ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
+            <>
+              {AppBskyEmbedExternal.isMain(post.embed.media) ? (
+                <ExternalEmbed
+                  service={service}
+                  did={atUri.hostname}
+                  embed={post.embed.media.external}
+                />
+              ) : null}
+            </>
+          ) : null
+        ) : null}
+        {embeddedPost ? (
+          <Post
+            service={service}
+            className="Post__post-embed"
+            uri={embeddedPost.uri}
+            post={embeddedPost.record}
+            isEmbedded
+          />
+        ) : null}
+        {profileError ? (
+          <FriendlyError
+            className="Post__profile-error"
+            heading="Error fetching author's profile"
+            message={profileError}
+          />
+        ) : null}
+        {embeddedPostError ? (
+          <FriendlyError
+            className="Post__post-embed-error"
+            heading="Error fetching the quoted post"
+            message={embeddedPostError}
+          />
+        ) : null}
+        {isEmbedded && (
+          <a
+            className="Post__link"
+            href={`${WEB_APP}/profile/${atUri.hostname}/post/${atUri.rkey}`}
+          >
+            Open post in the Bluesky web app
+          </a>
+        )}
+      </article>
     )
-  }
 
-  if (post.reply && parentPostError) {
+  if (parentPostError) {
     return (
       <>
         <FriendlyError
@@ -336,9 +326,37 @@ function Post({
         {postNode}
       </>
     )
+  } else if (post.reply && !isEmbedded) {
+    const thread = (
+      <>
+        {parentPost ? (
+          <Post
+            service={service}
+            uri={post.reply.parent.uri}
+            post={parentPost}
+            depth={depth + 1}
+          />
+        ) : (
+          <Spinner />
+        )}
+        {postNode}
+      </>
+    )
+    return depth === 0 ? <div className="PostThread">{thread}</div> : thread
+  } else if (depth > 2) {
+    return (
+      <>
+        {postNode}
+        <div className="Post--ellipsis">
+          <span>
+            {depth - 2} {depth > 3 ? 'replies' : 'reply'} hidden
+          </span>
+        </div>
+      </>
+    )
+  } else {
+    return postNode
   }
-
-  return postNode
 }
 
 export default Post

@@ -18,13 +18,13 @@ const RichText = memo(
         nodes.push(
           <a key={key++} href={segment.link?.uri}>
             {segment.text}
-          </a>
+          </a>,
         )
       } else if (segment.isMention()) {
         nodes.push(
           <a key={key++} href={`${WEB_APP}/profile/${segment.mention?.did}`}>
             {segment.text}
-          </a>
+          </a>,
         )
       } else {
         const runs = segment.text.split('\n')
@@ -37,7 +37,7 @@ const RichText = memo(
       }
     }
     return <>{nodes}</>
-  }
+  },
 )
 
 export default RichText

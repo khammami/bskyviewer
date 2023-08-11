@@ -7,12 +7,14 @@ import {
 } from '@atproto/api'
 import memoize from 'fast-memoize'
 
-export const getBlobURL = memoize((service: string, did: string, ref: BlobRef) => {
-  return `${service}/xrpc/com.atproto.sync.getBlob?${new URLSearchParams({
-    did,
-    cid: ref.ref,
-  }).toString()}`
-})
+export const getBlobURL = memoize(
+  (service: string, did: string, ref: BlobRef) => {
+    return `${service}/xrpc/com.atproto.sync.getBlob?${new URLSearchParams({
+      did,
+      cid: ref.ref,
+    }).toString()}`
+  },
+)
 
 export async function fetchPosts({
   service,
@@ -55,7 +57,7 @@ export const fetchProfile = function fetchProfile(
   service: string,
   handle: string,
   onSuccess: (profile: Profile) => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
 ) {
   const abortController = new AbortController()
 
@@ -93,7 +95,7 @@ export const fetchProfile = function fetchProfile(
     .catch(
       (error) =>
         abortController.signal.aborted ||
-        onError(error?.message ?? String(error))
+        onError(error?.message ?? String(error)),
     )
 
   return () => {
@@ -106,7 +108,7 @@ export function fetchPost(
   uri: string,
   cid: string,
   onSuccess: (post: AppBskyFeedPost.Record) => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
 ) {
   const atUri = new AtUri(uri)
 
@@ -131,7 +133,7 @@ export function fetchPost(
     .catch(
       (error) =>
         abortController.signal.aborted ||
-        onError(error?.message || String(error))
+        onError(error?.message || String(error)),
     )
 
   return () => {

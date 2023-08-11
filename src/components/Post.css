@@ -143,7 +143,8 @@
   outline-offset: -1px;
 }
 
-.Post__post-embed {
+.Post__post-embed,
+.Post__external-embed {
   grid-area: post-embed;
   margin-top: 8px;
 }
@@ -186,7 +187,7 @@
 }
 
 .PostThread > .Post > .Post__avatar {
-  z-index: 2;
+  z-index: 3;
 }
 
 .PostThread > .Post:not(:last-child)::before {
@@ -199,4 +200,31 @@
   height: 100%;
   background: #ccd;
   z-index: 1;
+}
+
+.Post--ellipsis {
+  position: relative;
+  font-style: italic;
+}
+
+.Post--ellipsis::before {
+  position: absolute;
+  display: block;
+  content: '';
+  left: 21px;
+  width: 2px;
+  height: 200%;
+  background-size: 4px 4px;
+  background-image: repeating-linear-gradient(
+    0deg,
+    #fff,
+    #fff 2px,
+    #ccd 1px,
+    #ccd
+  );
+  z-index: 2;
+}
+
+.Post--ellipsis span {
+  padding-left: 56px;
 }

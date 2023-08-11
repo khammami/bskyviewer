@@ -40,7 +40,7 @@ function App() {
   const [records, addEntries] = useReducer(
     (state: Posts, { cursor, records }: { cursor?: string; records: Posts }) =>
       cursor ? [...state, ...records] : records,
-    []
+    [],
   )
   const [count, increment] = useReducer((state) => state + 1, 0)
 
@@ -77,7 +77,7 @@ function App() {
           }
         })
     },
-    [collection.id, profileHandle, service]
+    [collection.id, profileHandle, service],
   )
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -106,7 +106,7 @@ function App() {
       service,
       cleanHandle(profileHandle, service),
       setProfile,
-      setError
+      setError,
     )
   }, [count, profileHandle, service])
 
@@ -208,7 +208,7 @@ function App() {
         <div
           className={classNames(
             'App__loading-card',
-            isLoading && 'App__loading-card--visible'
+            isLoading && 'App__loading-card--visible',
           )}
           aria-hidden={!isLoading}
         >
@@ -228,7 +228,7 @@ function App() {
           <div
             className={classNames(
               'App__post-timeline',
-              isLoading && 'App__post-timeline--loading'
+              isLoading && 'App__post-timeline--loading',
             )}
           >
             {records.map((record) => (
