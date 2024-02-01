@@ -5,8 +5,8 @@
   display: flex;
   padding: 12px;
   margin: 12px 0;
-  border: 2px solid darkgray;
   border-radius: 8px;
+  background-color: #f0f0f0;
   background-size: cover;
   background-position: center;
 }

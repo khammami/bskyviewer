@@ -234,6 +234,8 @@ function App() {
             className={classNames(
               'App__post-timeline',
               isLoading && 'App__post-timeline--loading',
+              'ring-1',
+              'shadow-xl',
             )}
           >
             {records.map((record) => (
