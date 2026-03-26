@@ -2,13 +2,14 @@ import classNames from 'classnames'
 import { Set } from 'immutable'
 import { Context, FormEvent, createContext, useEffect, useMemo, useReducer, useState } from 'react'
 import { Tooltip } from 'react-tooltip'
-import './App.css'
 import FriendlyError from './components/FriendlyError'
 import { Record } from './components/Record'
 import Spinner from './components/Spinner'
+import ThemeToggle from './components/ThemeToggle'
 import User from './components/User'
 import { Profile, fetchPosts, fetchProfile } from './utils/api'
 import { DEFAULT_SERVICE, WEB_APP } from './utils/constants'
+import { applyTheme, initThemeListener } from './utils/theme'
 
 type Posts = Awaited<ReturnType<typeof fetchPosts>>['records']
 
@@ -93,6 +94,11 @@ function App() {
   }
 
   useEffect(() => {
+    applyTheme()
+    return initThemeListener()
+  }, [])
+
+  useEffect(() => {
     if (!count) {
       return
     }
@@ -145,124 +151,135 @@ function App() {
 
   return (
     <Filter value={filterState}>
-      <header className="App__header">
-        <p className="App__credits">
-          <a href="https://github.com/bskyviewer/bskyviewer.github.io">
-            source code
-          </a>
-          {' • '}
-          based on{' '}
-          <a href="https://handlerug.github.io/bluesky-liked-posts/">
-            bluesky-liked-posts
-          </a>{' '}
-          by{' '}
-          <a href={`${WEB_APP}/profile/did:plc:uowmeg4dqtanpmjuknadqjqc`}>
-            @handlerug.bsky.social
-          </a>
-        </p>
-      </header>
+      <div className="max-w-content mx-auto px-4 py-6 min-h-screen">
+        <header className="mb-8 flex items-start justify-between gap-4">
+          <p className="text-sm text-contrast-400 dark:text-contrast-600">
+            <a href="https://github.com/bskyviewer/bskyviewer.github.io" className="hover:underline text-primary-500 dark:text-primary-400">
+              source code
+            </a>
+            {' • '}
+            based on{' '}
+            <a href="https://handlerug.github.io/bluesky-liked-posts/" className="hover:underline text-primary-500 dark:text-primary-400">
+              bluesky-liked-posts
+            </a>{' '}
+            by{' '}
+            <a href={`${WEB_APP}/profile/did:plc:uowmeg4dqtanpmjuknadqjqc`} className="hover:underline text-primary-500 dark:text-primary-400">
+              @handlerug.bsky.social
+            </a>
+          </p>
+          <ThemeToggle />
+        </header>
 
-      <main>
-        <form onSubmit={onSubmit}>
-          <div className="form-field">
-            <label htmlFor="profile-handle">username</label>
-            <input
-              id="profile-handle"
-              type="text"
-              name="handle"
-              placeholder="jesopo.bsky.social"
-              value={profileHandle}
-              onChange={(ev) => setProfileHandle(ev.target.value)}
-            />
-          </div>
-
-          <div className="form-field">
-            <details>
-              <summary>Advanced settings</summary>
-
-              <label htmlFor="service-url">ATProto service URL</label>
+        <main>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="profile-handle" className="block text-sm text-contrast-400 dark:text-contrast-600 mb-1.5">
+                username
+              </label>
               <input
-                id="service-url"
+                id="profile-handle"
                 type="text"
-                name="service"
-                placeholder={DEFAULT_SERVICE}
-                value={service}
-                onChange={(ev) => setService(ev.target.value)}
+                name="handle"
+                placeholder="jesopo.bsky.social"
+                value={profileHandle}
+                onChange={(ev) => setProfileHandle(ev.target.value)}
+                className="w-full rounded-lg border-0 bg-contrast-0 dark:bg-contrast-975 shadow-sm ring-1 ring-contrast-200 dark:ring-contrast-800 px-3.5 py-3 text-inherit font-inherit placeholder:text-contrast-400 dark:placeholder:text-contrast-500 transition-shadow focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
-            </details>
-          </div>
-
-          {profile && (
-            <div className="form-field">
-              <User service={service} profile={profile} />
             </div>
-          )}
 
-          <div className="form-field buttons">
-            {Object.entries(collections).map(([name, id]) => (
-              <button
-                key={id}
-                type="submit"
-                className={name === collection.name ? 'active' : undefined}
-                onClick={() => setCollection({ name, id })}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        </form>
+            <details className="group">
+              <summary className="text-sm text-contrast-400 dark:text-contrast-600 cursor-pointer hover:text-contrast-700 dark:hover:text-contrast-300 transition-colors select-none">
+                Advanced settings
+              </summary>
+              <div className="mt-3">
+                <label htmlFor="service-url" className="block text-sm text-contrast-400 dark:text-contrast-600 mb-1.5">
+                  ATProto service URL
+                </label>
+                <input
+                  id="service-url"
+                  type="text"
+                  name="service"
+                  placeholder={DEFAULT_SERVICE}
+                  value={service}
+                  onChange={(ev) => setService(ev.target.value)}
+                  className="w-full rounded-lg border-0 bg-contrast-0 dark:bg-contrast-975 shadow-sm ring-1 ring-contrast-200 dark:ring-contrast-800 px-3.5 py-3 text-inherit font-inherit placeholder:text-contrast-400 dark:placeholder:text-contrast-500 transition-shadow focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </details>
 
-        <div
-          className={classNames(
-            'App__loading-card',
-            isLoading && 'App__loading-card--visible',
-          )}
-          aria-hidden={!isLoading}
-        >
-          <div className="App__loading-card__inner">
-            <Spinner />
-            Loading your {collection.name}…
-          </div>
-        </div>
+            {profile && (
+              <User service={service} profile={profile} />
+            )}
 
-        {error ? (
-          <FriendlyError
-            className="App__like-error"
-            heading={`Error fetching ${collection.name}`}
-            message={error}
-          />
-        ) : records.length > 0 ? (
+            <div className="flex gap-1.5">
+              {Object.entries(collections).map(([name, id]) => (
+                <button
+                  key={id}
+                  type="submit"
+                  onClick={() => setCollection({ name, id })}
+                  className={classNames(
+                    'relative flex-1 rounded-lg font-bold py-3 px-3 text-white cursor-pointer overflow-hidden transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-black',
+                    name === collection.name
+                      ? 'bg-[#054CFF] hover:bg-[#1085FE] shadow-md'
+                      : 'bg-contrast-800 dark:bg-contrast-800 hover:bg-contrast-700 dark:hover:bg-contrast-700 shadow-sm',
+                  )}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </form>
+
           <div
             className={classNames(
-              'App__post-timeline',
-              isLoading && 'App__post-timeline--loading',
-              'ring-1',
-              'shadow-xl',
+              'relative overflow-hidden transition-all duration-200 ease-out',
+              isLoading ? 'h-24 opacity-100 mt-4' : 'h-0 opacity-0 pointer-events-none',
             )}
+            aria-hidden={!isLoading}
           >
-            {records.map((record) => (
-              <Record key={record.uri} record={record} service={service} />
-            ))}
-            {cursor ? (
-              <div
-                className="App__post-loading-card"
-                aria-label="Loading more posts"
-              >
-                <Spinner />
-              </div>
-            ) : null}
+            <div className="absolute inset-x-0 bottom-0 h-20 flex items-center justify-center gap-4 bg-contrast-0 dark:bg-contrast-975 rounded-xl ring-1 ring-contrast-100 dark:ring-contrast-900 shadow-sm text-center">
+              <Spinner size="lg" />
+              <span className="text-contrast-600 dark:text-contrast-300">Loading your {collection.name}…</span>
+            </div>
           </div>
-        ) : null}
-      </main>
-      <Tooltip
-        id="image"
-        opacity={1}
-        style={{ zIndex: 100 }}
-        render={({ content }) => (
-          <img className="App__tooltip" src={content || undefined} />
-        )}
-      />
-      <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
+
+          {error ? (
+            <FriendlyError
+              className="mt-4"
+              heading={`Error fetching ${collection.name}`}
+              message={error}
+            />
+          ) : records.length > 0 ? (
+            <div
+              className={classNames(
+                'mt-4 bg-contrast-0 dark:bg-contrast-975 rounded-xl ring-1 ring-contrast-100 dark:ring-contrast-900 shadow-xl px-4 py-2 transition-opacity duration-200',
+                isLoading && 'opacity-50',
+              )}
+            >
+              {records.map((record) => (
+                <Record key={record.uri} record={record} service={service} />
+              ))}
+              {cursor ? (
+                <div
+                  className="text-center py-4"
+                  aria-label="Loading more posts"
+                >
+                  <Spinner />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </main>
+        <Tooltip
+          id="image"
+          opacity={1}
+          style={{ zIndex: 100 }}
+          render={({ content }) => (
+            <img className="max-w-xs max-h-48 rounded" src={content || undefined} />
+          )}
+        />
+        <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
+      </div>
     </Filter>
   )
 }

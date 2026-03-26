@@ -76,7 +76,7 @@ export function Record({
         post={value as post.Record}
       />
     ) : (
-      <div className="App__post-loading-card" aria-label="Loading like">
+      <div className="text-center py-4" aria-label="Loading like">
         <Spinner />
       </div>
     )
@@ -91,7 +91,7 @@ export function Record({
         post={value as post.Record}
       />
     ) : (
-      <div className="App__post-loading-card" aria-label="Loading repost">
+      <div className="text-center py-4" aria-label="Loading repost">
         <Spinner />
       </div>
     )
@@ -106,7 +106,7 @@ export function Record({
       />
     ) : (
       <div
-        className="App__post-loading-card"
+        className="text-center py-4"
         aria-label="Loading followed user"
       >
         <Spinner />
@@ -122,7 +122,7 @@ export function Record({
         profile={value as Profile}
       />
     ) : (
-      <div className="App__post-loading-card" aria-label="Loading blocked user">
+      <div className="text-center py-4" aria-label="Loading blocked user">
         <Spinner />
       </div>
     )

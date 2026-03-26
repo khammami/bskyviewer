@@ -16,13 +16,13 @@ const RichText = memo(
     for (const segment of rt.segments()) {
       if (segment.isLink()) {
         nodes.push(
-          <a key={key++} href={segment.link?.uri}>
+          <a key={key++} href={segment.link?.uri} className="text-primary-500 dark:text-primary-400 no-underline hover:underline">
             {segment.text}
           </a>,
         )
       } else if (segment.isMention()) {
         nodes.push(
-          <a key={key++} href={`${WEB_APP}/profile/${segment.mention?.did}`}>
+          <a key={key++} href={`${WEB_APP}/profile/${segment.mention?.did}`} className="text-primary-500 dark:text-primary-400 no-underline hover:underline">
             {segment.text}
           </a>,
         )

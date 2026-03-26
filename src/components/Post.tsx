@@ -14,7 +14,6 @@ import { Profile, fetchPost, fetchProfile, getBlobURL } from '../utils/api'
 import { WEB_APP } from '../utils/constants'
 import { getRelativeDateString } from '../utils/datetime'
 import FriendlyError from './FriendlyError'
-import './Post.css'
 import RichText from './RichText'
 import Spinner from './Spinner'
 import User from './User'
@@ -31,19 +30,21 @@ function ExternalEmbed({
   embed: AppBskyEmbedExternal.External
 }) {
   return (
-    <a href={embed.uri} target="_blank" className="Post__external-embed">
+    <a href={embed.uri} target="_blank" className="col-span-full mt-2 block rounded-lg border border-contrast-100 dark:border-contrast-800 overflow-hidden no-underline hover:bg-contrast-25 dark:hover:bg-contrast-950 transition-colors">
       {embed.thumb ? (
         <img
-          className="Post__image"
+          className="w-full h-40 object-cover"
           src={getBlobURL(service, did, embed.thumb)}
           alt={embed.title}
         />
       ) : null}
-      <span className="Post__external-embed-title">{embed.title}</span>
-      <br />
-      <span className="Post__external-embed-description">
-        {embed.description}
-      </span>
+      <div className="p-3">
+        <span className="font-bold text-contrast-1000 dark:text-contrast-0 text-sm">{embed.title}</span>
+        <br />
+        <span className="text-contrast-400 dark:text-contrast-600 text-sm">
+          {embed.description}
+        </span>
+      </div>
     </a>
   )
 }
@@ -61,7 +62,7 @@ function PostImages({
     const url = getBlobURL(service, did, images[0].image)
     return (
       <img
-        className="Post__image"
+        className="col-span-full mt-2 w-full max-h-[60vh] rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
         src={url}
         alt={images[0].alt}
         data-tooltip-id="image"
@@ -71,7 +72,7 @@ function PostImages({
   }
 
   return (
-    <div className="Post__images">
+    <div className="col-span-full mt-2 grid grid-cols-2 gap-1 h-[60vh] min-h-[400px] overflow-hidden rounded-lg">
       {images.map((image, idx) => {
         const url = getBlobURL(service, did, image.image)
         return (
@@ -79,6 +80,7 @@ function PostImages({
             key={idx}
             src={url}
             alt={image.alt}
+            className="w-full h-full object-cover ring-1 ring-black/5 dark:ring-white/10"
             data-tooltip-id="image"
             data-tooltip-content={url}
           />
@@ -203,32 +205,47 @@ function Post({
   const postNode =
     hideReplies && depth > 1 && parentPost ? null : (
       <article
-        className={classNames('Post', isEmbedded && 'Post--embed', className)}
+        className={classNames(
+          'relative py-3',
+          isEmbedded
+            ? 'grid grid-cols-[auto_minmax(0,max-content)_1fr_auto] px-3 border border-contrast-100 dark:border-contrast-800 rounded-lg mt-2 text-sm'
+            : 'grid grid-cols-[auto_minmax(0,max-content)_1fr_auto]',
+          className,
+        )}
       >
         {profileImage ? (
           <img
-            className="Post__avatar"
+            className={classNames(
+              'row-span-1 rounded-full ring-2 ring-contrast-0 dark:ring-contrast-975 object-cover',
+              isEmbedded ? 'w-6 h-6 mr-2' : 'w-11 h-11 mr-3',
+            )}
+            style={{ gridRow: isEmbedded ? undefined : '1 / -1' }}
             src={profileImage}
             data-tooltip-id="image"
             data-tooltip-content={profileImage}
           />
         ) : (
-          <div className="Post__avatar-placeholder" />
+          <div
+            className={classNames(
+              'rounded-full bg-contrast-100 dark:bg-contrast-800',
+              isEmbedded ? 'w-6 h-6 mr-2' : 'w-11 h-11 mr-3',
+            )}
+            style={{ gridRow: isEmbedded ? undefined : '1 / -1' }}
+          />
         )}
         <a
-          className="Post__author-name"
-          href={`${WEB_APP}/profile/${profile ? profile.handle : atUri.hostname
-            }`}
+          className="self-center mr-1 font-bold text-contrast-1000 dark:text-contrast-0 no-underline hover:underline truncate"
+          href={`${WEB_APP}/profile/${profile ? profile.handle : atUri.hostname}`}
           data-tooltip-id="profile"
           data-tooltip-html={profileHtml}
         >
           {profile?.profile.displayName ?? profile?.handle ?? atUri.hostname}
         </a>{' '}
         {profile ? (
-          <span className="Post__author-handle">@{profile.handle}</span>
+          <span className="self-center text-sm text-contrast-400 dark:text-contrast-600 truncate">@{profile.handle}</span>
         ) : null}
         <a
-          className="Post__relative-date"
+          className="self-center text-sm text-contrast-400 dark:text-contrast-600 no-underline hover:underline whitespace-nowrap text-right"
           href={`${WEB_APP}/profile/${atUri.hostname}/post/${atUri.rkey}`}
         >
           <time
@@ -239,73 +256,74 @@ function Post({
             {relativeDate}
           </time>
         </a>
-        <div className="Post__content">
-          <RichText text={post.text} facets={post.facets} />
+        <div className={isEmbedded ? 'col-span-full' : 'col-[2/-1]'}>
+          <div className="mt-1">
+            <RichText text={post.text} facets={post.facets} />
+          </div>
+          {post.embed ? (
+            AppBskyEmbedImages.isMain(post.embed) ? (
+              <PostImages
+                service={service}
+                did={atUri.hostname}
+                images={post.embed.images}
+              />
+            ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
+              <>
+                {AppBskyEmbedImages.isMain(post.embed.media) ? (
+                  <PostImages
+                    did={atUri.hostname}
+                    images={post.embed.media.images}
+                    service={service}
+                  />
+                ) : null}
+              </>
+            ) : null
+          ) : null}
+          {post.embed ? (
+            AppBskyEmbedExternal.isMain(post.embed) ? (
+              <ExternalEmbed
+                service={service}
+                did={atUri.hostname}
+                embed={post.embed.external}
+              />
+            ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
+              <>
+                {AppBskyEmbedExternal.isMain(post.embed.media) ? (
+                  <ExternalEmbed
+                    service={service}
+                    did={atUri.hostname}
+                    embed={post.embed.media.external}
+                  />
+                ) : null}
+              </>
+            ) : null
+          ) : null}
+          {embeddedPost ? (
+            <Post
+              service={service}
+              uri={embeddedPost.uri}
+              post={embeddedPost.record}
+              isEmbedded
+            />
+          ) : null}
+          {profileError ? (
+            <FriendlyError
+              className="mt-2"
+              heading="Error fetching author's profile"
+              message={profileError}
+            />
+          ) : null}
+          {embeddedPostError ? (
+            <FriendlyError
+              className="mt-2"
+              heading="Error fetching the quoted post"
+              message={embeddedPostError}
+            />
+          ) : null}
         </div>
-        {post.embed ? (
-          AppBskyEmbedImages.isMain(post.embed) ? (
-            <PostImages
-              service={service}
-              did={atUri.hostname}
-              images={post.embed.images}
-            />
-          ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
-            <>
-              {AppBskyEmbedImages.isMain(post.embed.media) ? (
-                <PostImages
-                  did={atUri.hostname}
-                  images={post.embed.media.images}
-                  service={service}
-                />
-              ) : null}
-            </>
-          ) : null
-        ) : null}
-        {post.embed ? (
-          AppBskyEmbedExternal.isMain(post.embed) ? (
-            <ExternalEmbed
-              service={service}
-              did={atUri.hostname}
-              embed={post.embed.external}
-            />
-          ) : AppBskyEmbedRecordWithMedia.isMain(post.embed) ? (
-            <>
-              {AppBskyEmbedExternal.isMain(post.embed.media) ? (
-                <ExternalEmbed
-                  service={service}
-                  did={atUri.hostname}
-                  embed={post.embed.media.external}
-                />
-              ) : null}
-            </>
-          ) : null
-        ) : null}
-        {embeddedPost ? (
-          <Post
-            service={service}
-            className="Post__post-embed"
-            uri={embeddedPost.uri}
-            post={embeddedPost.record}
-            isEmbedded
-          />
-        ) : null}
-        {profileError ? (
-          <FriendlyError
-            className="Post__profile-error"
-            heading="Error fetching author's profile"
-            message={profileError}
-          />
-        ) : null}
-        {embeddedPostError ? (
-          <FriendlyError
-            className="Post__post-embed-error"
-            heading="Error fetching the quoted post"
-            message={embeddedPostError}
-          />
-        ) : null}
         {isEmbedded && (
           <a
-            className="Post__link"
+            className="absolute inset-0 text-[0px]"
             href={`${WEB_APP}/profile/${atUri.hostname}/post/${atUri.rkey}`}
           >
             Open post in the Bluesky web app
@@ -340,16 +358,22 @@ function Post({
         {postNode}
       </>
     )
-    return depth === 0 ? <div className="PostThread">{thread}</div> : thread
+    return depth === 0 ? (
+      <div className="[&>article:not(:last-child)]:relative [&>article:not(:last-child)]:before:absolute [&>article:not(:last-child)]:before:top-4 [&>article:not(:last-child)]:before:left-[21px] [&>article:not(:last-child)]:before:w-0.5 [&>article:not(:last-child)]:before:h-full [&>article:not(:last-child)]:before:bg-contrast-200 [&>article:not(:last-child)]:before:dark:bg-contrast-800 [&>article:not(:last-child)]:before:z-[1]">
+        {thread}
+      </div>
+    ) : thread
   } else if (depth > 2) {
     return (
       <>
         {postNode}
-        {hideReplies && <div className="Post--ellipsis">
-          <span onClick={() => setHideReplies(false)}>
-            {depth - 2} {depth > 3 ? 'replies' : 'reply'} hidden
-          </span>
-        </div>}
+        {hideReplies && (
+          <div className="relative italic text-contrast-400 dark:text-contrast-600 before:absolute before:left-[21px] before:w-0.5 before:h-[200%] before:z-[2] before:bg-[repeating-linear-gradient(0deg,white_0_2px,#C0CAD8_2px_4px)] dark:before:bg-[repeating-linear-gradient(0deg,black_0_2px,#313F54_2px_4px)]">
+            <span className="pl-14 cursor-pointer hover:underline" onClick={() => setHideReplies(false)}>
+              {depth - 2} {depth > 3 ? 'replies' : 'reply'} hidden
+            </span>
+          </div>
+        )}
       </>
     )
   } else {
