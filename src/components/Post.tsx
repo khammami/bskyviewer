@@ -363,9 +363,9 @@ function Post({
 
 function WithContext(props: Parameters<typeof Post>[0]) {
   const replyState = useState(true);
-  return <ReplyContext.Provider value={replyState}>
+  return <ReplyContext value={replyState}>
     <Post {...props} />
-  </ReplyContext.Provider>
+  </ReplyContext>
 }
 
 export default WithContext

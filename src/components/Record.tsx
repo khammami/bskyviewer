@@ -34,25 +34,25 @@ export function Record({
       return
     }
     if (like.isRecord(record.value) || repost.isRecord(record.value)) {
+      const subject = (record.value as like.Record).subject
       return fetchPost(
         service,
-        record.value.subject.uri,
-        record.value.subject.cid,
+        subject.uri,
+        subject.cid,
         setValue,
         setError,
       )
     } else if (follow.isRecord(record.value) || block.isRecord(record.value)) {
-      return fetchProfile(service, record.value.subject, setValue, setError)
+      return fetchProfile(service, (record.value as follow.Record).subject, setValue, setError)
     }
   }, [service, record])
 
   if (post.isRecord(record.value)) {
-    return filter.contains(record.uri) ? null : <Post service={service} uri={record.uri} post={record.value} />
+    return filter.contains(record.uri) ? null : <Post service={service} uri={record.uri} post={record.value as post.Record} />
   }
 
   if (
     error ||
-    record.error ||
     !record.value ||
     !('$type' in record.value) ||
     !record.value['$type']
@@ -60,19 +60,20 @@ export function Record({
     return (
       <FriendlyError
         heading="Error fetching the post"
-        message={error || String(record.error)}
+        message={error}
       />
     )
   }
 
   if (like.isRecord(record.value)) {
+    const likeRecord = record.value as like.Record
     return post.isRecord(value) ? (
       <Post
         verb="liked"
-        verbedAt={record.value.createdAt}
+        verbedAt={likeRecord.createdAt}
         service={service}
-        uri={record.value.subject.uri}
-        post={value}
+        uri={likeRecord.subject.uri}
+        post={value as post.Record}
       />
     ) : (
       <div className="App__post-loading-card" aria-label="Loading like">
@@ -80,13 +81,14 @@ export function Record({
       </div>
     )
   } else if (repost.isRecord(record.value)) {
+    const repostRecord = record.value as repost.Record
     return post.isRecord(value) ? (
       <Post
         verb="shared"
-        verbedAt={record.value.createdAt}
+        verbedAt={repostRecord.createdAt}
         service={service}
-        uri={record.value.subject.uri}
-        post={value}
+        uri={repostRecord.subject.uri}
+        post={value as post.Record}
       />
     ) : (
       <div className="App__post-loading-card" aria-label="Loading repost">
@@ -94,10 +96,11 @@ export function Record({
       </div>
     )
   } else if (follow.isRecord(record.value)) {
+    const followRecord = record.value as follow.Record
     return value && profile.isRecord(value.profile) ? (
       <User
         verb="followed"
-        verbedAt={record.value.createdAt}
+        verbedAt={followRecord.createdAt}
         service={service}
         profile={value as Profile}
       />
@@ -110,10 +113,11 @@ export function Record({
       </div>
     )
   } else if (block.isRecord(record.value)) {
+    const blockRecord = record.value as block.Record
     return value && profile.isRecord(value.profile) ? (
       <User
         verb="blocked"
-        verbedAt={record.value.createdAt}
+        verbedAt={blockRecord.createdAt}
         service={service}
         profile={value as Profile}
       />

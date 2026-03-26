@@ -27,6 +27,7 @@ const cleanHandle = (handle: string, service: string) => {
   return handle.toLowerCase().trim().replace(/^@/, '')
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const Filter: Context<[Set<string>, (value: Set<string>) => void]> = createContext([Set(), (_) => { }])
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
   const [profile, setProfile] = useState<Profile>()
   const [service, setService] = useState(DEFAULT_SERVICE)
   const filterState = useState(Set<string>())
+  const [, setFilter] = filterState
   const [collection, setCollection] = useState({
     name: 'posts',
     id: 'app.bsky.feed.post',
@@ -57,7 +59,7 @@ function App() {
       setError(undefined)
       if (!cursor) {
         setIsLoading(true)
-        filterState[1](Set())
+        setFilter(Set())
       }
 
       return fetchPosts({
@@ -82,7 +84,7 @@ function App() {
           }
         })
     },
-    [collection.id, profileHandle, service],
+    [collection.id, profileHandle, service, setFilter],
   )
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -142,7 +144,7 @@ function App() {
   }, [cursor, load])
 
   return (
-    <Filter.Provider value={filterState}>
+    <Filter value={filterState}>
       <header className="App__header">
         <p className="App__credits">
           <a href="https://github.com/bskyviewer/bskyviewer.github.io">
@@ -261,7 +263,7 @@ function App() {
         )}
       />
       <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
-    </Filter.Provider>
+    </Filter>
   )
 }
 

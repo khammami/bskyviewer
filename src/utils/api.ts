@@ -78,7 +78,7 @@ export const fetchProfile = function fetchProfile(
         }
 
         if (AppBskyActorProfile.isRecord(value)) {
-          onSuccess({ uri, handle, profile: value })
+          onSuccess({ uri, handle, profile: value as AppBskyActorProfile.Record })
           return { uri, value }
         } else {
           abortController.signal.aborted ||
@@ -117,7 +117,7 @@ export function fetchPost(
     .then(({ data: { value } }) => {
       if (!abortController.signal.aborted) {
         if (AppBskyFeedPost.isRecord(value)) {
-          onSuccess(value)
+          onSuccess(value as AppBskyFeedPost.Record)
         } else {
           console.log(value)
           onError(`Invalid post record ${uri}`)
