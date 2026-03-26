@@ -1,5 +1,4 @@
 import classNames from 'classnames'
-import './FriendlyError.css'
 
 function FriendlyError({
   className,
@@ -11,11 +10,11 @@ function FriendlyError({
   message: string
 }) {
   return (
-    <div className={classNames('FriendlyError', className)}>
+    <div className={classNames('bg-negative-25 dark:bg-negative-975 border border-negative-100 dark:border-negative-800 rounded-lg px-3 py-2', className)} role="alert">
       <div>
-        <b className="FriendlyError__heading">{heading}</b>
+        <b className="text-negative-700 dark:text-negative-300">{heading}</b>
       </div>
-      <span className="FriendlyError__message">{message}</span>
+      <span className="text-negative-600 dark:text-negative-400 text-sm">{message}</span>
     </div>
   )
 }

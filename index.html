@@ -3,15 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>Bluesky viewer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,700;0,800;1,400;1,700&display=swap"
-      rel="stylesheet"
-    />
+
+    <script>
+      // Prevent flash of wrong theme (FOUC)
+      (function () {
+        var t = localStorage.getItem('theme');
+        var d = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (d) document.documentElement.classList.add('dark');
+      })();
+    </script>
   </head>
-  <body>
+  <body class="bg-white dark:bg-black text-contrast-1000 dark:text-contrast-0 transition-colors duration-200">
     <noscript>
       This app requires JavaScript. There is no server component as it runs all
       requests from your browser.
