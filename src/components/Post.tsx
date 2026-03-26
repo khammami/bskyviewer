@@ -216,7 +216,7 @@ function Post({
         {profileImage ? (
           <img
             className={classNames(
-              'row-span-1 rounded-full ring-2 ring-contrast-0 dark:ring-contrast-975 object-cover',
+              'row-span-1 rounded-full ring-2 ring-contrast-0 dark:ring-contrast-975 object-cover z-[2]',
               isEmbedded ? 'w-6 h-6 mr-2' : 'w-11 h-11 mr-3',
             )}
             style={{ gridRow: isEmbedded ? undefined : '1 / -1' }}
@@ -227,7 +227,7 @@ function Post({
         ) : (
           <div
             className={classNames(
-              'rounded-full bg-contrast-100 dark:bg-contrast-800',
+              'rounded-full bg-contrast-100 dark:bg-contrast-800 z-[2]',
               isEmbedded ? 'w-6 h-6 mr-2' : 'w-11 h-11 mr-3',
             )}
             style={{ gridRow: isEmbedded ? undefined : '1 / -1' }}
