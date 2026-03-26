@@ -80,9 +80,8 @@ export const fetchProfile = function fetchProfile(
         if (AppBskyActorProfile.isRecord(value)) {
           onSuccess({ uri, handle, profile: value as AppBskyActorProfile.Record })
           return { uri, value }
-        } else {
-          abortController.signal.aborted ||
-            onError(`Invalid profile record ${uri}`)
+        } else if (!abortController.signal.aborted) {
+          onError(`Invalid profile record ${uri}`)
         }
       })
     })
