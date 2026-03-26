@@ -9,7 +9,6 @@ import {
 import classNames from 'classnames'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { renderToString } from 'react-dom/server'
-import { ReactEmbed } from 'react-embed'
 import { Filter } from '../App'
 import { Profile, fetchPost, fetchProfile, getBlobURL } from '../utils/api'
 import { WEB_APP } from '../utils/constants'
@@ -32,25 +31,20 @@ function ExternalEmbed({
   embed: AppBskyEmbedExternal.External
 }) {
   return (
-    <ReactEmbed
-      url={embed.uri}
-      renderVoid={() =>
-        embed.thumb ? (
-          <a href={embed.uri} target="_blank" className="Post__external-embed">
-            <img
-              className="Post__image"
-              src={getBlobURL(service, did, embed.thumb)}
-              alt={embed.title}
-            />
-            <span className="Post__external-embed-title">{embed.title}</span>
-            <br />
-            <span className="Post__external-embed-description">
-              {embed.description}
-            </span>
-          </a>
-        ) : null
-      }
-    />
+    <a href={embed.uri} target="_blank" className="Post__external-embed">
+      {embed.thumb ? (
+        <img
+          className="Post__image"
+          src={getBlobURL(service, did, embed.thumb)}
+          alt={embed.title}
+        />
+      ) : null}
+      <span className="Post__external-embed-title">{embed.title}</span>
+      <br />
+      <span className="Post__external-embed-description">
+        {embed.description}
+      </span>
+    </a>
   )
 }
 
@@ -172,7 +166,9 @@ function Post({
   }, [isEmbedded, post.reply, service])
 
   useEffect(() => {
-    post.reply && parentPost && !filter.contains(post.reply.parent.uri) && setFilter(filter.add(post.reply.parent.uri))
+    if (post.reply && parentPost && !filter.contains(post.reply.parent.uri)) {
+      setFilter(filter.add(post.reply.parent.uri))
+    }
   }, [post.reply, parentPost, filter, setFilter])
 
   useEffect(
