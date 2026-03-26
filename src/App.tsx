@@ -144,7 +144,7 @@ function App() {
   }, [cursor, load])
 
   return (
-    <Filter.Provider value={filterState}>
+    <Filter value={filterState}>
       <header className="App__header">
         <p className="App__credits">
           <a href="https://github.com/bskyviewer/bskyviewer.github.io">
@@ -263,7 +263,7 @@ function App() {
         )}
       />
       <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
-    </Filter.Provider>
+    </Filter>
   )
 }
 
