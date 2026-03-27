@@ -286,7 +286,7 @@ function App() {
           opacity={1}
           style={{ zIndex: 100 }}
           render={({ content }) => (
-            <img className="max-w-xs max-h-48 rounded" src={content || undefined} />
+            content ? <img className="max-w-xs max-h-48 rounded" src={content} /> : null
           )}
         />
         <Tooltip id="profile" opacity={1} style={{ zIndex: 100 }} />
