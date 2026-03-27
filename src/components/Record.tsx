@@ -1,15 +1,19 @@
 import {
+  AppBskyFeedGenerator as feedGenerator,
   AppBskyGraphBlock as block,
   AppBskyGraphFollow as follow,
   AppBskyFeedLike as like,
+  AppBskyGraphList as list,
   ComAtprotoRepoListRecords as listRecords,
   AppBskyFeedPost as post,
   AppBskyActorProfile as profile,
   AppBskyFeedRepost as repost,
+  AppBskyGraphStarterpack as starterpack,
 } from '@atproto/api'
 import { useContext, useEffect, useState } from 'react'
 import { Filter } from '../App'
-import { Profile, fetchPost, fetchProfile } from '../utils/api'
+import { LikedRecord, Profile, fetchPost, fetchRecord, fetchProfile } from '../utils/api'
+import FeedCard from './FeedCard'
 import FriendlyError from './FriendlyError'
 import Post from './Post'
 import Spinner from './Spinner'
@@ -22,7 +26,7 @@ export function Record({
   service: string
   record: listRecords.Record
 }) {
-  const [value, setValue] = useState<post.Record | Profile>()
+  const [value, setValue] = useState<LikedRecord | Profile>()
   const [error, setError] = useState('')
   const [filter] = useContext(Filter)
   useEffect(() => {
@@ -33,8 +37,17 @@ export function Record({
     ) {
       return
     }
-    if (like.isRecord(record.value) || repost.isRecord(record.value)) {
+    if (like.isRecord(record.value)) {
       const subject = (record.value as like.Record).subject
+      return fetchRecord(
+        service,
+        subject.uri,
+        subject.cid,
+        setValue,
+        setError,
+      )
+    } else if (repost.isRecord(record.value)) {
+      const subject = (record.value as repost.Record).subject
       return fetchPost(
         service,
         subject.uri,
@@ -49,6 +62,10 @@ export function Record({
 
   if (post.isRecord(record.value)) {
     return filter.contains(record.uri) ? null : <Post service={service} uri={record.uri} post={record.value as post.Record} />
+  }
+
+  if (starterpack.isRecord(record.value)) {
+    return <FeedCard service={service} uri={record.uri} record={record.value as starterpack.Record} />
   }
 
   if (
@@ -67,15 +84,33 @@ export function Record({
 
   if (like.isRecord(record.value)) {
     const likeRecord = record.value as like.Record
-    return post.isRecord(value) ? (
-      <Post
-        verb="liked"
-        verbedAt={likeRecord.createdAt}
-        service={service}
-        uri={likeRecord.subject.uri}
-        post={value as post.Record}
-      />
-    ) : (
+    if (post.isRecord(value)) {
+      return (
+        <Post
+          verb="liked"
+          verbedAt={likeRecord.createdAt}
+          service={service}
+          uri={likeRecord.subject.uri}
+          post={value as post.Record}
+        />
+      )
+    }
+    if (
+      feedGenerator.isRecord(value) ||
+      list.isRecord(value) ||
+      starterpack.isRecord(value)
+    ) {
+      return (
+        <FeedCard
+          verb="liked"
+          verbedAt={likeRecord.createdAt}
+          service={service}
+          uri={likeRecord.subject.uri}
+          record={value as feedGenerator.Record | list.Record | starterpack.Record}
+        />
+      )
+    }
+    return (
       <div className="text-center py-4" aria-label="Loading like">
         <Spinner />
       </div>

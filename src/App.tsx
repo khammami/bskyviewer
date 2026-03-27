@@ -19,6 +19,7 @@ const collections = {
   likes: 'app.bsky.feed.like',
   follows: 'app.bsky.graph.follow',
   blocks: 'app.bsky.graph.block',
+  'starter packs': 'app.bsky.graph.starterpack',
 }
 
 const cleanHandle = (handle: string, service: string) => {
@@ -90,6 +91,16 @@ function App() {
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    try {
+      const url = new URL(service)
+      if (url.protocol !== 'https:') {
+        setError('Service URL must use HTTPS')
+        return
+      }
+    } catch {
+      setError('Invalid service URL')
+      return
+    }
     increment()
   }
 

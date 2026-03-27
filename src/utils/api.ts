@@ -1,6 +1,9 @@
 import {
   AppBskyActorProfile,
+  AppBskyFeedGenerator,
   AppBskyFeedPost,
+  AppBskyGraphList,
+  AppBskyGraphStarterpack,
   AtUri,
   AtpAgent,
   BlobRef,
@@ -37,15 +40,39 @@ export async function fetchPosts({
   return data
 }
 
-const getRecord = memoize((service, args) => {
-  const agent = new AtpAgent({ service })
-  return agent.api.com.atproto.repo.getRecord(args)
-})
+const MAX_CACHE_SIZE = 500
 
-const describeRepo = memoize((service, args) => {
+function limitedSet<V>(map: Map<string, V>, key: string, value: V) {
+  if (map.size >= MAX_CACHE_SIZE) {
+    const oldest = map.keys().next().value!
+    map.delete(oldest)
+  }
+  map.set(key, value)
+}
+
+const _getRecordCache = new Map<string, Promise<any>>()
+const getRecord = (service: string, args: any) => {
+  const key = JSON.stringify([service, args])
+  const cached = _getRecordCache.get(key)
+  if (cached) return cached
   const agent = new AtpAgent({ service })
-  return agent.api.com.atproto.repo.describeRepo(args)
-})
+  const promise = agent.api.com.atproto.repo.getRecord(args)
+  limitedSet(_getRecordCache, key, promise)
+  promise.catch(() => _getRecordCache.delete(key))
+  return promise
+}
+
+const _describeRepoCache = new Map<string, Promise<any>>()
+const describeRepo = (service: string, args: any) => {
+  const key = JSON.stringify([service, args])
+  const cached = _describeRepoCache.get(key)
+  if (cached) return cached
+  const agent = new AtpAgent({ service })
+  const promise = agent.api.com.atproto.repo.describeRepo(args)
+  limitedSet(_describeRepoCache, key, promise)
+  promise.catch(() => _describeRepoCache.delete(key))
+  return promise
+}
 
 export type Profile = {
   uri: string
@@ -89,6 +116,55 @@ export const fetchProfile = function fetchProfile(
       (error) =>
         abortController.signal.aborted ||
         onError(error?.message ?? String(error)),
+    )
+
+  return () => {
+    abortController.abort()
+  }
+}
+
+export type LikedRecord =
+  | AppBskyFeedPost.Record
+  | AppBskyFeedGenerator.Record
+  | AppBskyGraphList.Record
+  | AppBskyGraphStarterpack.Record
+
+export function fetchRecord(
+  service: string,
+  uri: string,
+  cid: string,
+  onSuccess: (record: LikedRecord) => void,
+  onError: (error: string) => void,
+) {
+  const atUri = new AtUri(uri)
+
+  const abortController = new AbortController()
+
+  getRecord(service, {
+    repo: atUri.hostname,
+    collection: atUri.collection,
+    rkey: atUri.rkey,
+    cid: cid,
+  })
+    .then(({ data: { value } }) => {
+      if (!abortController.signal.aborted) {
+        if (
+          AppBskyFeedPost.isRecord(value) ||
+          AppBskyFeedGenerator.isRecord(value) ||
+          AppBskyGraphList.isRecord(value) ||
+          AppBskyGraphStarterpack.isRecord(value)
+        ) {
+          onSuccess(value as LikedRecord)
+        } else {
+          console.log(value)
+          onError(`Unsupported record type ${uri}`)
+        }
+      }
+    })
+    .catch(
+      (error) =>
+        abortController.signal.aborted ||
+        onError(error?.message || String(error)),
     )
 
   return () => {

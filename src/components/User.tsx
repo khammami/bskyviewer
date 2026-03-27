@@ -45,7 +45,7 @@ function User({
     <article
       className="relative flex items-start gap-3 p-3 my-3 rounded-lg bg-contrast-50 dark:bg-contrast-950 bg-cover bg-center min-w-0"
       style={
-        bannerImage ? { backgroundImage: `url(${bannerImage})` } : undefined
+        bannerImage ? { backgroundImage: `url("${bannerImage}")` } : undefined
       }
       data-tooltip-id={bannerImage ? 'image' : undefined}
       data-tooltip-content={bannerImage}
