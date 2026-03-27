@@ -30,7 +30,7 @@ function ExternalEmbed({
   embed: AppBskyEmbedExternal.External
 }) {
   return (
-    <a href={embed.uri} target="_blank" className="col-span-full mt-2 block rounded-lg border border-contrast-100 dark:border-contrast-800 overflow-hidden no-underline hover:bg-contrast-25 dark:hover:bg-contrast-950 transition-colors">
+    <a href={embed.uri} target="_blank" rel="noopener noreferrer" className="col-span-full mt-2 block rounded-lg border border-contrast-100 dark:border-contrast-800 overflow-hidden no-underline hover:bg-contrast-25 dark:hover:bg-contrast-950 transition-colors">
       {embed.thumb ? (
         <img
           className="w-full h-40 object-cover"
@@ -134,6 +134,8 @@ function Post({
     return getBlobURL(service, atUri.hostname, profile.profile.avatar)
   }, [atUri.hostname, profile, service])
 
+  // Security: renderToString escapes all text content, making this safe for
+  // use with data-tooltip-html. Do NOT use dangerouslySetInnerHTML in <User>.
   const profileHtml = useMemo(
     () =>
       profile && renderToString(<User service={service} profile={profile} />),
