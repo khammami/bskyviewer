@@ -14,7 +14,7 @@
     "@atproto/api": "^0.19.4",
     "classnames": "^2.5.1",
     "fast-memoize": "^2.5.2",
-    "immutable": "^4.3.5",
+    "immutable": "^5.1.5",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router": "^6.28.0",
